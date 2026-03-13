@@ -5,7 +5,7 @@ Zambia University of Technology · Year 3, Semester 1
 
 Overview
 
-LinguaSwift is a client-side multilingual translation web application that uses the [MyMemory Translation API](https://mymemory.translated.net/) to translate text between 13 languages in real time. The app requires no build step, no framework, and no backend — open `index.html` in any modern browser and it works.
+LinguaSwift is a client-side multilingual translation web application that uses the [MyMemory Translation API](https://mymemory.translated.net/) to translate text between 13 languages in real time. The app requires no build step, no framework and no backend open `index.html` in any modern browser and it works.
 
 
 Features
@@ -26,7 +26,7 @@ Features
 
 
 
-## Project Structure
+ Project Structure
 
 ```
 linguaswift/
@@ -60,7 +60,7 @@ Translations are fetched from the [MyMemory free API](https://mymemory.translate
 GET https://api.mymemory.translated.net/get?q=Hello&langpair=en|fr
 ```
 
-No API key is required for the free tier. The free tier allows approximately **5,000 words per day** per IP address. If the quota is exceeded, the app shows a warning message.
+No API key is required for the free tier. The free tier allows approximately 5,000 words per day per IP address. If the quota is exceeded, the app shows a warning message.
 
 Dark Mode Architecture
 
