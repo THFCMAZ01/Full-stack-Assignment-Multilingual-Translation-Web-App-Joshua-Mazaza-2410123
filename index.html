@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LinguaSwift — real-time multilingual translation powered by MyMemory API" />
+  <meta name="author" content="BSE 3350 Full-Stack Web Development" />
+  <title>LinguaSwift — Multilingual Translator</title>
+
+  <!--
+    FOUC prevention: this tiny inline script runs synchronously before
+    the browser renders any pixels. It reads the saved theme from
+    localStorage and sets data-theme on <html> immediately, so the
+    correct colour scheme is applied on the very first paint.
+    No defer — intentionally synchronous and before any stylesheet load.
+  -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (_) { /* localStorage blocked — keep default light */ }
+    }());
+  </script>
+
+  <!-- Preconnect to Google Fonts hosts to reduce render-blocking -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <header class="site-header">
+
+    <!-- Logo text — visible and readable without ARIA assistance -->
+    <div class="logo">
+      Lingua<span>Swift</span>
+    </div>
+
+    <button class="theme-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+      <!-- Sun icon — shown in light mode -->
+      <svg id="icon-sun" class="theme-icon"
+           xmlns="http://www.w3.org/2000/svg" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+           aria-hidden="true">
+        <circle cx="12" cy="12" r="5" />
+        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42
+                 M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+      </svg>
+      <!-- Moon icon — shown in dark mode, hidden by default via .hidden -->
+      <svg id="icon-moon" class="theme-icon hidden"
+           xmlns="http://www.w3.org/2000/svg" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+           aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+      </svg>
+      <span id="theme-label">Dark</span>
+    </button>
+
+  </header>
+
+  <!-- ── Main card ─────────────────────────────────────────────── -->
+  <!--
+    <div role="main"> rather than <main>: using <main> as a styling
+    wrapper conflates landmark semantics with presentation. role="main"
+    on a <div> provides the same accessibility landmark without misusing
+    the native element.
+  -->
+  <div class="card" role="main" aria-label="Translation interface">
+
+    <!-- Language selection bar -->
+    <div class="lang-bar">
+
+      <!-- Source language -->
+      <div class="lang-select-wrap">
+        <!--
+          sr-only <label> is sufficient for accessibility.
+          No aria-label on <select> — it would duplicate the label
+          and cause double-announcements on some screen readers.
+        -->
+        <label for="source-lang" class="sr-only">Source language</label>
+        <select id="source-lang">
+          <option value="autodetect">Detect Language</option>
+          <option value="en" selected>English</option>
+          <option value="fr">French</option>
+          <option value="es">Spanish</option>
+          <option value="de">German</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+          <option value="ar">Arabic</option>
+          <option value="ru">Russian</option>
+          <option value="ko">Korean</option>
+          <option value="hi">Hindi</option>
+          <option value="sw">Swahili</option>
+        </select>
+        <svg class="chevron" aria-hidden="true"
+             xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      <!-- Swap languages -->
+      <button class="swap-btn" id="swap-btn" type="button"
+              aria-label="Swap source and target languages">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+             aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+      </button>
+
+      <!-- Target language -->
+      <div class="lang-select-wrap lang-bar-right">
+        <label for="target-lang" class="sr-only">Target language</label>
+        <select id="target-lang">
+          <option value="fr" selected>French</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="de">German</option>
+          <option value="pt">Portuguese</option>
+          <option value="it">Italian</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+          <option value="ar">Arabic</option>
+          <option value="ru">Russian</option>
+          <option value="ko">Korean</option>
+          <option value="hi">Hindi</option>
+          <option value="sw">Swahili</option>
+        </select>
+        <svg class="chevron" aria-hidden="true"
+             xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+    </div><!-- /.lang-bar -->
+
+    <!-- Input / Output panels -->
+    <div class="panels">
+
+      <!-- Input panel -->
+      <div class="panel">
+        <div class="panel-label" aria-hidden="true">Input</div>
+        <textarea
+          id="input-text"
+          maxlength="500"
+          placeholder="Enter text to translate…"
+          spellcheck="true"
+          aria-label="Text to translate"
+          aria-describedby="char-count"
+        >Hello, how are you</textarea>
+        <div class="panel-footer">
+          <button class="icon-btn" id="listen-input" type="button"
+                  aria-label="Listen to input text">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                 aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07" />
+            </svg>
+            <span>Listen</span>
+          </button>
+          <button class="icon-btn" id="copy-input" type="button"
+                  aria-label="Copy input text">
+            <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                 aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+            <svg class="icon-check hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+                 aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="btn-copy-label">Copy</span>
+          </button>
+          <span class="char-count" id="char-count" aria-live="polite">18/500</span>
+        </div>
+      </div>
+
+      <!-- Visual divider -->
+      <div class="divider" role="separator" aria-hidden="true"></div>
+
+      <!-- Output panel -->
+      <div class="panel">
+        <div class="panel-label" aria-hidden="true">Output</div>
+        <div
+          id="output-text"
+          class="output-content placeholder"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label="Translated text"
+        >Translation will appear here…</div>
+        <div class="panel-footer">
+          <button class="icon-btn" id="listen-output" type="button"
+                  aria-label="Listen to translated text">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                 aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07" />
+            </svg>
+            <span>Listen</span>
+          </button>
+          <button class="icon-btn" id="copy-output" type="button"
+                  aria-label="Copy translated text">
+            <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                 aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+            <svg class="icon-check hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
+                 aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="btn-copy-label">Copy</span>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /.panels -->
+
+    <!-- Translate button -->
+    <div class="translate-wrap">
+      <button id="translate-btn" type="button" aria-label="Translate text">
+        <span class="btn-label">Translate</span>
+        <span class="spinner" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <!-- Status / error banner -->
+    <div
+      class="status-bar"
+      id="status-bar"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    ></div>
+
+  </div><!-- /.card -->
+
+  <!-- ── Footer ────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    Powered by
+    <a href="https://mymemory.translated.net" target="_blank" rel="noopener noreferrer">
+      MyMemory API
+    </a>
+    &nbsp;·&nbsp; BSE 3350 Full&#8209;Stack Web Development
+  </footer>
+
+  <!--
+    defer: app.js executes after full DOM parse. The FOUC inline script
+    above handles theme restore before first paint; this deferred script
+    handles all interactive behaviour.
+  -->
+  <script src="app.js" defer></script>
+
+</body>
+</html>
