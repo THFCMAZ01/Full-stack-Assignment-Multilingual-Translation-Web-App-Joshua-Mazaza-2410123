@@ -140,3 +140,5 @@ Programme: BSE Year 3
 ID: 2410123
 
 Course: BSE 3350 Full-Stack Web Development
+
+app-link: https://translation-app1.vercel.app/
