@@ -46,7 +46,7 @@ No installation required.
 2. Open `index.html` in any modern browser (Chrome, Firefox, Edge, Safari).
 3. The app auto-translates the default text ("Hello, how are you" → French) on load.
 
-> Internet connection required.** The app calls the MyMemory API on every translation. Translations will not work offline.
+> Internet connection required. The app calls the MyMemory API on every translation. Translations will not work offline.
 
 
 
