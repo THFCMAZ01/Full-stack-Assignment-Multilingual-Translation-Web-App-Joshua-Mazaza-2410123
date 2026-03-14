@@ -88,23 +88,23 @@ The application never uses `innerHTML` to write user-controlled content. All dyn
 - Google Fonts preconnect links for sub-resource performance.
 - All `<button>` elements carry `type="button"` to prevent accidental form submission.
 - Accessible: `<label for>` on every `<select>`, `aria-label` on interactive elements, `aria-live` on dynamic regions, `aria-hidden` on all decorative SVGs.
-- `<script src="app.js" defer>` — `defer` guarantees the DOM is fully parsed before JS runs.
+- `<script src="app.js" defer>` `defer` guarantees the DOM is fully parsed before JS runs.
 
 `style.css`
 
 - All colours defined as CSS custom properties in `:root` and overridden in `[data-theme="dark"]`.
-- No `transition: all` anywhere — transitions target specific properties only to avoid conflicts with `@keyframes` animations.
-- `:focus-visible` rings on every interactive element — keyboard users always have a visible focus indicator.
-- `body::before` — a subtle radial-gradient ambient texture applied as a fixed pseudo-element layer.
-- `@media (max-width: 640px)` — mobile layout: panels stack vertically, divider becomes horizontal, language bar wraps.
+- No `transition: all` anywhere  transitions target specific properties only to avoid conflicts with `@keyframes` animations.
+- `:focus-visible` rings on every interactive element keyboard users always have a visible focus indicator.
+- `body::before` a subtle radial-gradient ambient texture applied as a fixed pseudo-element layer.
+- `@media (max-width: 640px)` mobile layout: panels stack vertically, divider becomes horizontal, language bar wraps.
 
 `app.js`
 
 - `'use strict'` at module level.
-- All DOM-dependent code inside `DOMContentLoaded` — combined with `defer`, this double-guards against any `getElementById` returning `null`.
+- All DOM-dependent code inside `DOMContentLoaded` combined with `defer`, this double-guards against any `getElementById` returning `null`.
 - Named constants for all magic numbers (`MAX_CHARS`, `WARN_THRESHOLD`, `DEBOUNCE_DELAY`, `COPY_RESET_MS`, `API_BASE`).
-- `state` object tracks `outputText` and `isLoading` — the latter is read as a re-entrancy guard in `translate()`.
-- `copyToClipboard` sets `btn.dataset.copying = 'true'` *before* the async clipboard write — prevents a second click from racing through the guard.
+- `state` object tracks `outputText` and `isLoading`  the latter is read as a re-entrancy guard in `translate()`.
+- `copyToClipboard` sets `btn.dataset.copying = 'true'` *before* the async clipboard write prevents a second click from racing through the guard.
 
 
 
@@ -124,10 +124,10 @@ The application never uses `innerHTML` to write user-controlled content. All dyn
 
  Known Limitations
 
-- MyMemory free quota — 5,000 words/day per IP. Exceeding the quota returns a warning embedded in the translated text, which the app detects and surfaces to the user.
-- `navigator.clipboard`— Requires a secure context (HTTPS or `localhost`). The copy button shows a fallback message when the API is unavailable (e.g., opened as a plain `file://` URL on some browsers).
-- Language detection — When "Detect Language" is selected, the swap button is disabled (source language must be known to swap).
-- No offline mode — All translation data comes from the MyMemory API.
+- MyMemory free quota: 5,000 words/day per IP. Exceeding the quota returns a warning embedded in the translated text, which the app detects and surfaces to the user.
+- `navigator.clipboard`: Requires a secure context (HTTPS or `localhost`). The copy button shows a fallback message when the API is unavailable (e.g., opened as a plain `file://` URL on some browsers).
+- Language detection: When "Detect Language" is selected, the swap button is disabled (source language must be known to swap).
+- No offline mode: All translation data comes from the MyMemory API.
 
 
 
