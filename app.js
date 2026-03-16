@@ -205,18 +205,28 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ── Text-to-Speech ──────────────────────────────────────── */
 
   /**
-   * Speak text using the Web Speech API.
+   * Speak text using the Web Speech API with full mobile compatibility.
    *
-   * Mobile fix: calling speechSynthesis.cancel() immediately before
-   * speak() causes mobile Chrome and iOS Safari to silently drop the
-   * new utterance — the cancel and speak race inside the synthesis engine.
-   * The workaround is:
-   *   1. Only cancel if something is actively speaking/pending.
-   *   2. Yield one event-loop tick (setTimeout 0) after cancel so the
-   *      browser can finish tearing down the previous utterance before
-   *      the new one is queued.
-   *   3. Attach an onerror handler so silent mobile failures surface
-   *      as a visible status message instead of nothing happening.
+   * Three mobile issues addressed:
+   *
+   * 1. CANCEL RACE (Android Chrome / iOS Safari)
+   *    Calling cancel() immediately before speak() causes mobile browsers
+   *    to swallow the new utterance. Fix: only cancel when something is
+   *    already playing, then yield one event-loop tick before speaking.
+   *
+   * 2. VOICE LOADING (Android Chrome)
+   *    getVoices() returns [] on first call — voices load asynchronously.
+   *    If speak() fires before voices are ready, Android throws
+   *    'synthesis-failed' or 'language-unavailable'. Fix: wait for
+   *    the voiceschanged event if voices aren't loaded yet, with a
+   *    2-second timeout fallback so the function never hangs.
+   *
+   * 3. LANGUAGE FALLBACK (Android Chrome)
+   *    Many Android devices have limited voice packs installed. If no
+   *    voice matches the target language, Android fails silently.
+   *    Fix: try an exact language match first; if none found, fall back
+   *    to any voice for the same language root (e.g. 'fr' matches
+   *    'fr-FR'), then fall back to the device default.
    *
    * @param {string} text     — Text to speak
    * @param {string} langCode — BCP-47 tag or 'autodetect'
@@ -234,31 +244,96 @@ document.addEventListener('DOMContentLoaded', () => {
     const synth = window.speechSynthesis;
     const lang  = langCode === 'autodetect' ? 'en' : langCode;
 
-    function doSpeak() {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
+    /**
+     * Pick the best available voice for `lang`.
+     * Priority: exact match → same language root → device default (null).
+     * @param {string} targetLang
+     * @returns {SpeechSynthesisVoice|null}
+     */
+    function pickVoice(targetLang) {
+      const voices = synth.getVoices();
+      if (!voices.length) return null;
 
-      // Surface silent mobile failures as a visible status message
+      // 1. Exact match e.g. 'fr' matches voice.lang 'fr'
+      const exact = voices.find(v => v.lang.toLowerCase() === targetLang.toLowerCase());
+      if (exact) return exact;
+
+      // 2. Root match e.g. 'fr' matches 'fr-FR', 'fr-CA' etc.
+      const root = targetLang.split('-')[0].toLowerCase();
+      const partial = voices.find(v => v.lang.toLowerCase().startsWith(root + '-') ||
+                                       v.lang.toLowerCase() === root);
+      if (partial) return partial;
+
+      // 3. No voice for this language — return null (browser picks default)
+      return null;
+    }
+
+    /** Queue the utterance, optionally cancelling any current speech first. */
+    function doSpeak() {
+      const utterance  = new SpeechSynthesisUtterance(text);
+      utterance.lang   = lang;
+      const voice      = pickVoice(lang);
+      if (voice) utterance.voice = voice;
+
       utterance.onerror = (e) => {
-        // 'interrupted' fires when cancel() stops a previous utterance —
-        // that is expected and not an error worth showing to the user
-        if (e.error !== 'interrupted') {
+        // 'interrupted' is expected when cancel() stops a prior utterance
+        if (e.error === 'interrupted') return;
+
+        // Map error codes to user-readable messages
+        const messages = {
+          'language-unavailable': 'No voice installed for this language on your device. Try installing a language pack in your device settings.',
+          'voice-unavailable':    'No voice available for this language on your device.',
+          'synthesis-failed':     'Text-to-Speech failed. Try tapping the button again.',
+          'synthesis-unavailable':'Text-to-Speech is not available on this device.',
+          'not-allowed':          'Text-to-Speech was blocked. Tap the button to try again.',
+          'audio-busy':           'Audio is busy. Please wait and try again.',
+          'network':              'Network error during Text-to-Speech. Check your connection.',
+          'canceled':             null, // silent — user or system cancelled intentionally
+        };
+
+        const msg = messages[e.error];
+        if (msg !== undefined) {
+          if (msg !== null) showStatus(msg);
+        } else {
           showStatus('Text-to-Speech failed. Try again or check your device volume.');
         }
       };
 
-      synth.speak(utterance);
+      if (synth.speaking || synth.pending) {
+        // Cancel current speech, yield one tick so mobile doesn't swallow
+        // the new speak() call during the cancel teardown
+        synth.cancel();
+        setTimeout(() => synth.speak(utterance), 0);
+      } else {
+        synth.speak(utterance);
+      }
     }
 
-    if (synth.speaking || synth.pending) {
-      // Something is already playing — cancel it, then yield one tick
-      // before queuing the new utterance so mobile browsers don't
-      // swallow the speak() call
-      synth.cancel();
-      setTimeout(doSpeak, 0);
-    } else {
-      // Nothing playing — safe to speak immediately, no cancel needed
+    // Wait for voices to be available (Android loads them asynchronously)
+    const voices = synth.getVoices();
+    if (voices.length > 0) {
       doSpeak();
+    } else {
+      // Voices not ready yet — wait for voiceschanged, 2s timeout fallback
+      let fired = false;
+
+      const onVoicesChanged = () => {
+        if (fired) return;
+        fired = true;
+        synth.removeEventListener('voiceschanged', onVoicesChanged);
+        doSpeak();
+      };
+
+      synth.addEventListener('voiceschanged', onVoicesChanged);
+
+      // Fallback: if voiceschanged never fires, attempt anyway after 2s
+      setTimeout(() => {
+        if (!fired) {
+          fired = true;
+          synth.removeEventListener('voiceschanged', onVoicesChanged);
+          doSpeak();
+        }
+      }, 2000);
     }
   }
 
