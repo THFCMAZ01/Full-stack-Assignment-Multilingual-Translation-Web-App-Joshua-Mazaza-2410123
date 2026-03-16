@@ -206,6 +206,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * Speak text using the Web Speech API.
+   *
+   * Mobile fix: calling speechSynthesis.cancel() immediately before
+   * speak() causes mobile Chrome and iOS Safari to silently drop the
+   * new utterance — the cancel and speak race inside the synthesis engine.
+   * The workaround is:
+   *   1. Only cancel if something is actively speaking/pending.
+   *   2. Yield one event-loop tick (setTimeout 0) after cancel so the
+   *      browser can finish tearing down the previous utterance before
+   *      the new one is queued.
+   *   3. Attach an onerror handler so silent mobile failures surface
+   *      as a visible status message instead of nothing happening.
+   *
    * @param {string} text     — Text to speak
    * @param {string} langCode — BCP-47 tag or 'autodetect'
    */
@@ -219,10 +231,35 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    window.speechSynthesis.cancel(); // stop any current utterance
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langCode === 'autodetect' ? 'en' : langCode;
-    window.speechSynthesis.speak(utterance);
+    const synth = window.speechSynthesis;
+    const lang  = langCode === 'autodetect' ? 'en' : langCode;
+
+    function doSpeak() {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+
+      // Surface silent mobile failures as a visible status message
+      utterance.onerror = (e) => {
+        // 'interrupted' fires when cancel() stops a previous utterance —
+        // that is expected and not an error worth showing to the user
+        if (e.error !== 'interrupted') {
+          showStatus('Text-to-Speech failed. Try again or check your device volume.');
+        }
+      };
+
+      synth.speak(utterance);
+    }
+
+    if (synth.speaking || synth.pending) {
+      // Something is already playing — cancel it, then yield one tick
+      // before queuing the new utterance so mobile browsers don't
+      // swallow the speak() call
+      synth.cancel();
+      setTimeout(doSpeak, 0);
+    } else {
+      // Nothing playing — safe to speak immediately, no cancel needed
+      doSpeak();
+    }
   }
 
   /* ── Clipboard ───────────────────────────────────────────── */
