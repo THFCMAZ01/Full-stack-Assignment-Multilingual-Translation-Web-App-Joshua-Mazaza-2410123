@@ -133,12 +133,12 @@ The application never uses `innerHTML` to write user-controlled content. All dyn
 
 Author
 
-Name: Joshua Mazaza
+Name: JOSHUA MAZAZA 
 
 Programme: BSE Year 3
 
-ID: 2410123
+Student_ID: 2410123
 
 Course: BSE 3350 Full-Stack Web Development
 
-app-link: https://translation-app1.vercel.app/
+link: https://translation-app1.vercel.app/
